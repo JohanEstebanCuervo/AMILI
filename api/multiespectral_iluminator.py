@@ -20,9 +20,9 @@ class MultiSpectralIluminator:
         puerto: str,
         bps: int = 115200,
         time_sleep_c: int = 1,
-        time_exposure: int = 500,
-        time_led_on: int = 100,
-        num_flash: int = 4,
+        time_exposure: int = 1000,
+        time_led_on: int = 200,
+        num_flash: int = 3,
         virtual_mode: bool = False,
     ):
         print("Iniciando Corona_Multiespectral")
@@ -46,6 +46,7 @@ class MultiSpectralIluminator:
             "__boards__": self.set_boards,
             "__wavelengths__": self.set_wavelengths,
             "__pwm__": self.set_pwm,
+            "__angle__": self.set_angle,
         }
         self.__correct_tx = b"ACK-END\n"
         self.__comunication_state = False
@@ -66,6 +67,8 @@ class MultiSpectralIluminator:
 
         pwm_values = [[100] * len(boards)] * len(wavelengths)
         pwm_table = pd.DataFrame(pwm_values, index=wavelengths, columns=boards)
+
+        angles = dict(zip(boards, [90] * len(boards)))
         self.__config_set = {
             "Tiempo de espera de comunicación": time_sleep_c,
             "Tiempo de exposición": time_exposure,
@@ -75,6 +78,7 @@ class MultiSpectralIluminator:
             "__boards__": boards,
             "__wavelengths__": wav_dict,
             "__pwm__": pwm_table,
+            #      "__angle__": angles,
         }
 
         if self.set_config(self.__config_set):
@@ -82,6 +86,32 @@ class MultiSpectralIluminator:
             return
 
         print("Corona iniciada correctamente")
+
+    def set_angle(self, angles: dict) -> bool:
+        """
+        Configura el angulo de las boards
+
+        Args:
+            angles (dict): diccionario con los angulos a setear
+
+        Returns:
+            bool: True en caso de error False si todo Ok
+        """
+        for board, angle in angles.items():
+            angle = int(angle)
+            if angle < 45 or angle > 150:
+                return True
+            if board not in self.__config_set["__angle__"]:
+                return True
+
+            message = "{" + f"ID:{int(board[-1]) - 1},ANGLE:{angle}" + "}"
+            if self.tx_msg(message, False):
+                return True
+            time.sleep(0.3)
+
+            self.__config_set["__angle__"][board] = angle
+
+        return False
 
     def set_pwm(self, table: pd.DataFrame) -> bool:
         """
@@ -253,6 +283,12 @@ class MultiSpectralIluminator:
         return False
 
     def get_num_images(self) -> int:
+        """
+        Muestra el número de imagenes a capturar
+
+        Returns:
+            int: Número de imagenes
+        """
         return self.__num_images
 
     def get_boards(self) -> dict:
@@ -265,16 +301,15 @@ class MultiSpectralIluminator:
         if self.tx_msg("{SCAN}", comp=False):
             return
         time.sleep(0.5)
-        if self.tx_msg("{SCAN}", comp=False):
-            return
-        time.sleep(0.5)
 
-        if self.__comunication.in_waiting > 0:
-            boards = self.__comunication.readlines()
-            print(boards)
-        else:
+        boards = None
+        while self.__comunication.in_waiting > 0:
+            boards = self.__comunication.readline()
+
+        if boards is None:
             boards = "{BD:0}"
 
+        print(boards)
         boards = {"BOARD 1": True, "BOARD 2": True, "BOARD 3": True, "BOARD 4": True}
 
         return boards
