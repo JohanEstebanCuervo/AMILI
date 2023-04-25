@@ -5,6 +5,19 @@ import matplotlib.pyplot as plt
 
 
 def detect_spectralon(direction, imshow=False) -> np.ndarray:
+    """
+    Genera la mascara del spectralon
+
+    Args:
+        direction (_type_): _description_
+        imshow (bool, optional): _description_. Defaults to False.
+
+    Raises:
+        ValueError: _description_
+
+    Returns:
+        np.ndarray: _description_
+    """
     image = cv2.imread(direction, cv2.IMREAD_GRAYSCALE)
     mask = np.zeros_like(image)
 
@@ -82,24 +95,19 @@ def detect_spectralon(direction, imshow=False) -> np.ndarray:
         -1,
     )
 
+    return mask
 
-def check_median_circle(direction, imshow=False):
+
+def check_median_circle(direction: str, mask: np.ndarray):
     """
     Calcula la media de el circulo mayor detectado en la captura
     de una imagen
     """
-
+    image = cv2.imread(direction, cv2.IMREAD_GRAYSCALE)
     median_value = np.mean(np.array(image[np.where(mask == 255)]).astype(float))
 
     if median_value < 255:
-        src = image.copy()
-        src = cv2.circle(
-            src,
-            (int(circle[0]), int(circle[1])),
-            int(circle[2] * 0.8),
-            (255, 255, 255),
-            2,
-        )
+        src = image + mask
         cv2.imwrite("pruebas/" + os.path.basename(direction), src)
 
     return median_value

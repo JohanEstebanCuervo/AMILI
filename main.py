@@ -9,7 +9,7 @@ from ui_components.tkinter_form import Form
 from api.Flea3Cam_API import Camera_PySpin
 from api.multiespectral_iluminator import MultiSpectralIluminator
 from methods.adquisition_functions import serial_port_select
-from methods.recognition import check_median_circle
+from methods.recognition import check_median_circle, detect_spectralon
 import pandas as pd
 
 
@@ -115,6 +115,7 @@ class App(tk.Tk):
         config["Captura por board"] = False
 
         board = list(config["__boards__"].keys())[0]
+        mask = None
         for wav in config["__wavelengths__"]:
             config["__wavelengths__"] = dict(
                 zip(config["__wavelengths__"], [False] * len(config["__wavelengths__"]))
@@ -140,7 +141,11 @@ class App(tk.Tk):
 
                 path_image = "temp/" + os.listdir("temp")[0]
 
-                median = check_median_circle(path_image)
+                if mask is None:
+                    mask = detect_spectralon(path_image, True)
+
+                median = check_median_circle(path_image, mask)
+
                 print(f"The median value is: {median}")
                 if median < 255 and delta_pwm == 1:
                     searching_value = False
