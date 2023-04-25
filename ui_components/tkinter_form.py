@@ -256,6 +256,19 @@ class Table(ttk.LabelFrame, CreateWidgets):
             self.widgets.append(row_widgets)
             self.__vars.append(row_vars)
 
+    def set(self, data: pd.DataFrame) -> None:
+        """
+        Setea los valores de la tabla
+        """
+        wavelengths = [indexs["text"] for indexs in self.indexs]
+        boards = [board["text"] for board in self.columns]
+
+        for row_index, wave in enumerate(wavelengths):
+            row_vars = self.__vars[row_index]
+            for column_index, board in enumerate(boards):
+                variable = row_vars[column_index]
+                variable.set(data.loc[wave, board])
+
     def get(self) -> pd.DataFrame:
         """
         Return Dataframe with values entry

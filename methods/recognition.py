@@ -4,11 +4,7 @@ import cv2
 import matplotlib.pyplot as plt
 
 
-def check_median_circle(direction, imshow=False):
-    """
-    Calcula la media de el circulo mayor detectado en la captura
-    de una imagen
-    """
+def detect_spectralon(direction, imshow=False) -> np.ndarray:
     image = cv2.imread(direction, cv2.IMREAD_GRAYSCALE)
     mask = np.zeros_like(image)
 
@@ -23,9 +19,7 @@ def check_median_circle(direction, imshow=False):
         plt.imshow(image2, vmin=0, vmax=255)
         plt.show()
 
-    kernel = np.array([[0, 1, 0],
-                      [1, 1, 1],
-                      [0, 1, 0]]).astype('uint8')
+    kernel = np.array([[0, 1, 0], [1, 1, 1], [0, 1, 0]]).astype("uint8")
 
     image2 = cv2.erode(image2, kernel, iterations=3)
 
@@ -45,11 +39,19 @@ def check_median_circle(direction, imshow=False):
         plt.imshow(image2, vmin=0, vmax=255)
         plt.show()
 
-    circles = cv2.HoughCircles(image2, cv2.HOUGH_GRADIENT, 1, 70,
-                               param1=50, param2=20, minRadius=0, maxRadius=0)
+    circles = cv2.HoughCircles(
+        image2,
+        cv2.HOUGH_GRADIENT,
+        1,
+        70,
+        param1=50,
+        param2=20,
+        minRadius=0,
+        maxRadius=0,
+    )
 
     if circles is None:
-        raise ValueError('No se encontraron Circulos en la imagen')
+        raise ValueError("No se encontraron Circulos en la imagen")
 
     if imshow:
         src = image.copy()
@@ -58,7 +60,7 @@ def check_median_circle(direction, imshow=False):
             # circle center
             cv2.circle(src, center, 1, (0, 0, 0), 3)
             # circle outline
-            radius = int(i[2]*0.8)
+            radius = int(i[2] * 0.8)
             cv2.circle(src, center, radius, (0, 0, 0), 3)
 
         plt.imshow(src, vmin=0, vmax=255)
@@ -72,16 +74,32 @@ def check_median_circle(direction, imshow=False):
             circle = cir
 
     print(circle)
-    mask = cv2.circle(mask, (int(circle[0]), int(circle[1])), int(
-        circle[2]*0.8), (255, 255, 255), -1)
+    mask = cv2.circle(
+        mask,
+        (int(circle[0]), int(circle[1])),
+        int(circle[2] * 0.8),
+        (255, 255, 255),
+        -1,
+    )
 
-    median_value = np.mean(
-        np.array(image[np.where(mask == 255)]).astype(float))
+
+def check_median_circle(direction, imshow=False):
+    """
+    Calcula la media de el circulo mayor detectado en la captura
+    de una imagen
+    """
+
+    median_value = np.mean(np.array(image[np.where(mask == 255)]).astype(float))
 
     if median_value < 255:
         src = image.copy()
-        src = cv2.circle(src, (int(circle[0]), int(circle[1])), int(
-            circle[2]*0.8), (255, 255, 255), 2)
-        cv2.imwrite('pruebas/' + os.path.basename(direction), src)
+        src = cv2.circle(
+            src,
+            (int(circle[0]), int(circle[1])),
+            int(circle[2] * 0.8),
+            (255, 255, 255),
+            2,
+        )
+        cv2.imwrite("pruebas/" + os.path.basename(direction), src)
 
     return median_value
