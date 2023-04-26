@@ -10,7 +10,7 @@ def detect_spectralon(direction, imshow=False) -> np.ndarray:
 
     Args:
         direction (_type_): _description_
-        imshow (bool, optional): _description_. Defaults to False.
+        imshow (bool, optional): True,False or 'end'. Defaults to False.
 
     Raises:
         ValueError: _description_
@@ -21,14 +21,14 @@ def detect_spectralon(direction, imshow=False) -> np.ndarray:
     image = cv2.imread(direction, cv2.IMREAD_GRAYSCALE)
     mask = np.zeros_like(image)
 
-    if imshow:
+    if imshow is True:
         plt.imshow(image, vmin=0, vmax=255)
         plt.show()
 
     # _, image2 = cv2.threshold(image, 245, 255, cv2.THRESH_BINARY)
     _, image2 = cv2.threshold(image, 120, 255, cv2.THRESH_OTSU)
 
-    if imshow:
+    if imshow is True:
         plt.imshow(image2, vmin=0, vmax=255)
         plt.show()
 
@@ -36,19 +36,19 @@ def detect_spectralon(direction, imshow=False) -> np.ndarray:
 
     image2 = cv2.erode(image2, kernel, iterations=3)
 
-    if imshow:
+    if imshow is True:
         plt.imshow(image2, vmin=0, vmax=255)
         plt.show()
 
     image2 = cv2.Canny(image2, 100, 200)
 
-    if imshow:
+    if imshow is True:
         plt.imshow(image2, vmin=0, vmax=255)
         plt.show()
 
     image2 = cv2.dilate(image2, kernel, iterations=3)
 
-    if imshow:
+    if imshow is True:
         plt.imshow(image2, vmin=0, vmax=255)
         plt.show()
 
@@ -98,7 +98,7 @@ def detect_spectralon(direction, imshow=False) -> np.ndarray:
     return mask
 
 
-def check_median_circle(direction: str, mask: np.ndarray):
+def check_median(direction: str, mask: np.ndarray, ideal_value: int = 255):
     """
     Calcula la media de el circulo mayor detectado en la captura
     de una imagen
@@ -106,7 +106,7 @@ def check_median_circle(direction: str, mask: np.ndarray):
     image = cv2.imread(direction, cv2.IMREAD_GRAYSCALE)
     median_value = np.mean(np.array(image[np.where(mask == 255)]).astype(float))
 
-    if median_value < 255:
+    if median_value < ideal_value:
         src = image + mask
         cv2.imwrite("pruebas/" + os.path.basename(direction), src)
 

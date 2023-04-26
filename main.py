@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 import shutil
+import cv2
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
@@ -9,7 +10,8 @@ from ui_components.tkinter_form import Form
 from api.Flea3Cam_API import Camera_PySpin
 from api.multiespectral_iluminator import MultiSpectralIluminator
 from methods.adquisition_functions import serial_port_select
-from methods.recognition import check_median_circle, detect_spectralon
+from methods.recognition import check_median, detect_spectralon
+from methods.color_checker_detection import color_checker_detection
 import pandas as pd
 
 
@@ -66,6 +68,13 @@ class App(tk.Tk):
         )
         self.bt_calibrate_spectralon.pack(side="left", fill="both", expand=1)
 
+        self.bt_calibrate_white = ttk.Button(
+            self.fm_control,
+            text="Calibrar Color Checker",
+            command=self.command_bt_calibrate_white,
+        )
+        self.bt_calibrate_white.pack(side="left", fill="both", expand=1)
+
         self.charge_duty = ttk.Button(
             self.fm_control, text="Cargar PWM", command=self.command_charge_duty
         )
@@ -97,6 +106,70 @@ class App(tk.Tk):
                 original = "temp/" + name_image
                 target = folder + "/" + name_image
                 shutil.move(original, target)
+
+    def command_bt_calibrate_white(self):
+        """
+        Calibra valores de pwm para la color_checker
+        """
+
+        config = self.form.get()
+
+        keys = ["__boards__", "__pwm__", "__wavelengths__", "Captura por board"]
+        values = map(config.get, keys)
+        config = dict(zip(keys, values))
+
+        config["__boards__"] = dict(
+            zip(config["__boards__"], [True] * len(config["__boards__"]))
+        )
+        config["Captura por board"] = False
+
+        board = list(config["__boards__"].keys())[0]
+        mask = None
+        for wav in config["__wavelengths__"]:
+            config["__wavelengths__"] = dict(
+                zip(config["__wavelengths__"], [False] * len(config["__wavelengths__"]))
+            )
+            config["__wavelengths__"][wav] = True
+
+            searching_value = True
+            checked_led_pwm = 100
+            delta_pwm = 10
+            while searching_value is True:
+                if checked_led_pwm > 100:
+                    # configure_single_LED(comunicacion, led , list_led_duty_values[0] )
+                    checked_led_pwm = 100
+                    break
+                config["__pwm__"].loc[wav][board] = checked_led_pwm
+
+                self.form.set(config)
+                self.update()
+                if self.iluminator.set_config(config):
+                    raise ValueError("Error seteando el iluminador")
+
+                self.multispectral_capture()
+
+                path_image = "temp/" + os.listdir("temp")[0]
+
+                if mask is None:
+                    image = cv2.imread(path_image, cv2.IMREAD_GRAYSCALE)
+                    mask = color_checker_detection([image], "end")[18]
+
+                median = check_median(path_image, mask, ideal_value=243)
+
+                print(f"The median value is: {median}")
+                if median < 243 and delta_pwm == 1:
+                    searching_value = False
+                    print(f"The final value is {checked_led_pwm}")
+
+                elif median < 243 and delta_pwm == 10:
+                    checked_led_pwm += 9
+                    delta_pwm = 1
+
+                    if checked_led_pwm > 100:
+                        searching_value = False
+                        print(f"The final value is {checked_led_pwm}")
+                else:
+                    checked_led_pwm -= delta_pwm
 
     def command_bt_calibrate_spectralon(self):
         """
@@ -142,9 +215,9 @@ class App(tk.Tk):
                 path_image = "temp/" + os.listdir("temp")[0]
 
                 if mask is None:
-                    mask = detect_spectralon(path_image, True)
+                    mask = detect_spectralon(path_image, "end")
 
-                median = check_median_circle(path_image, mask)
+                median = check_median(path_image, mask)
 
                 print(f"The median value is: {median}")
                 if median < 255 and delta_pwm == 1:
