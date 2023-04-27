@@ -1,21 +1,31 @@
+"""
+AMILI
+Adcquisition MultiSpectral Images with Ilumination Led
+"""
 import os
 from datetime import datetime
 import shutil
-import cv2
 import tkinter as tk
 from tkinter import ttk
 from tkinter import filedialog
+import pandas as pd
 import PySpin as Ps
+import cv2
+
 from ui_components.tkinter_form import Form
+from ui_components.multiespectral_visualizer import MultiSpectralVisualizer
 from api.Flea3Cam_API import Camera_PySpin
 from api.multiespectral_iluminator import MultiSpectralIluminator
 from methods.adquisition_functions import serial_port_select
 from methods.recognition import check_median, detect_spectralon
 from methods.color_checker_detection import color_checker_detection
-import pandas as pd
 
 
 class App(tk.Tk):
+    """
+    Main App
+    """
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -24,7 +34,7 @@ class App(tk.Tk):
 
         self.__create_widgets()
 
-        init_camera = True
+        init_camera = False
         if init_camera:
             system = Ps.System.GetInstance()
             cam_list = system.GetCameras()
@@ -60,6 +70,13 @@ class App(tk.Tk):
         self.bt_port.grid(row=0, column=2)
 
         self.fm_control = ttk.Frame(self)
+
+        self.bt_capture = ttk.Button(
+            self.fm_control,
+            text="Captura Multiespectral",
+            command=self.multispectral_capture,
+        )
+        self.bt_capture.pack(side="top", fill="both", expand=1)
 
         self.bt_calibrate_spectralon = ttk.Button(
             self.fm_control,
@@ -200,7 +217,6 @@ class App(tk.Tk):
             delta_pwm = 10
             while searching_value is True:
                 if checked_led_pwm > 100:
-                    # configure_single_LED(comunicacion, led , list_led_duty_values[0] )
                     checked_led_pwm = 100
                     break
                 config["__pwm__"].loc[wav][board] = checked_led_pwm
@@ -309,16 +325,12 @@ class App(tk.Tk):
         self.bt_port.config(state=tk.DISABLED)
         self.cb_port.config(state=tk.DISABLED)
 
-        self.bt_capture = ttk.Button(
-            self,
-            text="Captura Multiespectral",
-            command=self.multispectral_capture,
-        )
-        self.bt_capture.grid(row=2, column=0, columnspan=3, sticky="nesw")
-
         self.fm_control.grid(row=3, column=0, columnspan=3, sticky="nesw")
 
     def multispectral_capture(self):
+        """
+        Capture MultiSpectral Images
+        """
         for ima in os.listdir("temp"):
             os.remove(f"temp/{ima}")
 
@@ -346,6 +358,8 @@ class App(tk.Tk):
 
         if self.camera:
             self.camera.End_Acquisition()
+
+        MultiSpectralVisualizer(self, "temp")
 
 
 if __name__ == "__main__":
