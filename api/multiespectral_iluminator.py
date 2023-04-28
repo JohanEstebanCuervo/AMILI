@@ -64,9 +64,11 @@ class MultiSpectralIluminator:
         wav_dict = dict(zip(wavelengths, [True] * len(wavelengths)))
 
         boards = self.get_boards()
+        pwm_values = [[100] * (len(boards)+1)] * len(wavelengths)
+        pwm_boards = list(boards)
+        pwm_boards.insert(0, 'Multiple_Board')
 
-        pwm_values = [[100] * len(boards)] * len(wavelengths)
-        pwm_table = pd.DataFrame(pwm_values, index=wavelengths, columns=boards)
+        pwm_table = pd.DataFrame(pwm_values, index=wavelengths, columns=pwm_boards)
 
         angles = dict(zip(boards, [90] * len(boards)))
         self.__config_set = {
@@ -440,13 +442,13 @@ class MultiSpectralIluminator:
                     id_boards += f"ID:{id_b}"
                     id_name += f"{id_b}"
 
-            board = list(self.__config_set["__boards__"].keys())[0]
+            column = 'Multiple_Board'
             for wav, state in self.__config_set["__wavelengths__"].items():
                 if not state:
                     continue
 
                 led_id = f"LED:{self.wavelengths[wav]}"
-                duty = f'DUTY:{self.__config_set["__pwm__"].loc[wav, board]}'
+                duty = f'DUTY:{self.__config_set["__pwm__"].loc[wav, column]}'
 
                 message = "{" + f"{id_boards},{led_id},{duty},START" + "}"
                 name_capture.append(f"{id_name}_{wav}")

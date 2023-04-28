@@ -3,8 +3,6 @@
 
 import subprocess
 import PySpin
-import serial
-import time
 
 # Esta funcion busca los puertos serial en uso. En caso de conocer el puerto serial se puede cambiar el parametro port='Nombre_del_puerto'
 

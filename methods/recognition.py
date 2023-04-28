@@ -66,7 +66,7 @@ def detect_spectralon(direction, imshow=False) -> np.ndarray:
     if circles is None:
         raise ValueError("No se encontraron Circulos en la imagen")
 
-    if imshow:
+    if imshow is True:
         src = image.copy()
         for i in circles[0, :]:
             center = (int(i[0]), int(i[1]))
@@ -94,6 +94,10 @@ def detect_spectralon(direction, imshow=False) -> np.ndarray:
         (255, 255, 255),
         -1,
     )
+
+    if imshow:
+        plt.imshow(mask, vmin=0, vmax=255)
+        plt.show()
 
     return mask
 
