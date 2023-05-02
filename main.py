@@ -13,6 +13,7 @@ import PySpin as Ps
 import cv2
 
 from ui_components.tkinter_form import Form
+from ui_components.tkinter_form_dialog import form_dialog
 from ui_components.multiespectral_visualizer import MultiSpectralVisualizer
 from api.Flea3Cam_API import Camera_PySpin
 from api.multiespectral_iluminator import MultiSpectralIluminator
@@ -108,7 +109,6 @@ class App(tk.Tk):
         )
         self.bt_rep_cap.pack(side="left", fill="both", expand=1)
 
-<<<<<<< HEAD
     def __compare_form(self):
         """
         Compara si se han realizado cambios en el formulario
@@ -130,18 +130,24 @@ class App(tk.Tk):
 
         else:
             self.form.set(dict1)
-=======
-    def compare_state(self):
-
-        dict1 = self.form.get()
-        dict2 = self.iluminator.get_config()
->>>>>>> 2dded2e5cbf64e7a4a2fed147944e82d82d35455
 
     def command_bt_rep_cap(self):
         """
-        Realiza 15 capturas iguales
+        Realiza N capturas iguales
         """
-        for _ in range(15):
+        self.__compare_form()
+
+        struct = {
+            "Número de capturas: ": 15,
+        }
+
+        result = form_dialog(struct, self, "aceptar")
+
+        value = result["Número de capturas: "]
+        if value <= 0 or value > 100:
+            return
+
+        for _ in range(value):
             self.multispectral_capture()
             now = datetime.now()
             date = (
@@ -166,13 +172,13 @@ class App(tk.Tk):
 
         mask = None
         for board in config["__pwm__"].columns.values.tolist():
-            if board == 'Multiple_Board':
+            if board == "Multiple_Board":
                 config["__boards__"] = dict(
                     zip(config["__boards__"], [True] * len(config["__boards__"]))
                 )
                 config["Captura por board"] = False
             else:
-                break # Comentar para que calibre los demas
+                break  # Comentar para que calibre los demas
                 config["__boards__"] = dict(
                     zip(config["__boards__"], [False] * len(config["__boards__"]))
                 )
@@ -181,7 +187,10 @@ class App(tk.Tk):
 
             for wav in config["__wavelengths__"]:
                 config["__wavelengths__"] = dict(
-                    zip(config["__wavelengths__"], [False] * len(config["__wavelengths__"]))
+                    zip(
+                        config["__wavelengths__"],
+                        [False] * len(config["__wavelengths__"]),
+                    )
                 )
                 config["__wavelengths__"][wav] = True
 
@@ -206,7 +215,7 @@ class App(tk.Tk):
 
                     if mask is None:
                         image = cv2.imread(path_image, cv2.IMREAD_GRAYSCALE)
-                        mask = color_checker_detection([image], "end")[num_patch-1]
+                        mask = color_checker_detection([image], "end")[num_patch - 1]
 
                     median = check_median(path_image, mask, ideal_value=ideal_value)
 
@@ -230,7 +239,9 @@ class App(tk.Tk):
         Calibra valores de pwm para el spectralon
         """
         if ideal_value > 255 or ideal_value < 0:
-            raise ValueError(f'El valor de calibración debe estar entre 0 y 255. Valor: {ideal_value}')
+            raise ValueError(
+                f"El valor de calibración debe estar entre 0 y 255. Valor: {ideal_value}"
+            )
 
         config = self.form.get()
 
@@ -240,13 +251,13 @@ class App(tk.Tk):
 
         mask = None
         for board in config["__pwm__"].columns.values.tolist():
-            if board == 'Multiple_Board':
+            if board == "Multiple_Board":
                 config["__boards__"] = dict(
                     zip(config["__boards__"], [True] * len(config["__boards__"]))
                 )
                 config["Captura por board"] = False
             else:
-                break # Comentar para que calibre los demas
+                break  # Comentar para que calibre los demas
                 config["__boards__"] = dict(
                     zip(config["__boards__"], [False] * len(config["__boards__"]))
                 )
@@ -255,7 +266,10 @@ class App(tk.Tk):
 
             for wav in config["__wavelengths__"]:
                 config["__wavelengths__"] = dict(
-                    zip(config["__wavelengths__"], [False] * len(config["__wavelengths__"]))
+                    zip(
+                        config["__wavelengths__"],
+                        [False] * len(config["__wavelengths__"]),
+                    )
                 )
                 config["__wavelengths__"][wav] = True
 
