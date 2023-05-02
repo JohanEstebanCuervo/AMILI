@@ -1,5 +1,4 @@
 import tkinter as tk
-from ui_components.tkinter_form import Form
 
 
 class FormDialog(tk.Tk, tk.Toplevel):
@@ -39,13 +38,19 @@ class FormDialog(tk.Tk, tk.Toplevel):
         return self.values
 
 
-def form_dialog(struct: dict, master=None, name_button: str = "submit") -> dict:
+def form_dialog(
+    struct: dict, master=None, name_button: str = "submit", execute: bool = True
+) -> dict or FormDialog:
     window = FormDialog(struct, master, name_button)
+
+    if execute is False:
+        return window
 
     return window.execute()
 
 
 if __name__ == "__main__":
+    from tkinter_form import Form
 
     def bt_f():
         struct = {
@@ -62,3 +67,6 @@ if __name__ == "__main__":
     bt.pack()
 
     window.mainloop()
+
+else:
+    from .tkinter_form import Form

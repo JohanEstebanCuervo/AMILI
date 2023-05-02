@@ -7,7 +7,7 @@ from datetime import datetime
 import shutil
 import tkinter as tk
 from tkinter import ttk
-from tkinter import filedialog
+from tkinter import filedialog, messagebox
 import pandas as pd
 import PySpin as Ps
 import cv2
@@ -19,6 +19,7 @@ from api.multiespectral_iluminator import MultiSpectralIluminator
 from methods.adquisition_functions import serial_port_select
 from methods.recognition import check_median, detect_spectralon
 from methods.color_checker_detection import color_checker_detection
+from methods.dictionary import compare_dicts
 
 
 class App(tk.Tk):
@@ -34,7 +35,7 @@ class App(tk.Tk):
 
         self.__create_widgets()
 
-        init_camera = False
+        init_camera = True
         if init_camera:
             system = Ps.System.GetInstance()
             cam_list = system.GetCameras()
@@ -106,6 +107,28 @@ class App(tk.Tk):
             self.fm_control, text="Repetibilidad", command=self.command_bt_rep_cap
         )
         self.bt_rep_cap.pack(side="left", fill="both", expand=1)
+
+    def __compare_form(self):
+        """
+        Compara si se han realizado cambios en el formulario
+        de entrada y estos no han sido guardados
+        """
+        dict1 = self.iluminator.get_config()
+        dict2 = self.form.get()
+
+        if compare_dicts(dict1, dict2):
+            return
+
+        res = messagebox.askyesno(
+            "Configuración No Actualizada",
+            "No se han realizado los cambios en el iluminador multiespectral ¿Desea Realizarlos?",
+        )
+
+        if res is True:
+            self.iluminator.set_config(dict2)
+
+        else:
+            self.form.set(dict1)
 
     def command_bt_rep_cap(self):
         """
@@ -331,6 +354,8 @@ class App(tk.Tk):
         """
         Capture MultiSpectral Images
         """
+        self.__compare_form()
+
         for ima in os.listdir("temp"):
             os.remove(f"temp/{ima}")
 
