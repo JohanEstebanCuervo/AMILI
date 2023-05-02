@@ -75,7 +75,7 @@ class App(tk.Tk):
         self.bt_capture = ttk.Button(
             self.fm_control,
             text="Captura Multiespectral",
-            command=self.multispectral_capture,
+            command=lambda: self.multispectral_capture(True),
         )
         self.bt_capture.pack(side="top", fill="both", expand=1)
 
@@ -108,6 +108,7 @@ class App(tk.Tk):
         )
         self.bt_rep_cap.pack(side="left", fill="both", expand=1)
 
+<<<<<<< HEAD
     def __compare_form(self):
         """
         Compara si se han realizado cambios en el formulario
@@ -129,6 +130,12 @@ class App(tk.Tk):
 
         else:
             self.form.set(dict1)
+=======
+    def compare_state(self):
+
+        dict1 = self.form.get()
+        dict2 = self.iluminator.get_config()
+>>>>>>> 2dded2e5cbf64e7a4a2fed147944e82d82d35455
 
     def command_bt_rep_cap(self):
         """
@@ -147,74 +154,83 @@ class App(tk.Tk):
                 target = folder + "/" + name_image
                 shutil.move(original, target)
 
-    def command_bt_calibrate_white(self):
+    def command_bt_calibrate_white(self, num_patch: int = 19, ideal_value: int = 243):
         """
         Calibra valores de pwm para la color_checker
         """
-
         config = self.form.get()
 
         keys = ["__boards__", "__pwm__", "__wavelengths__", "Captura por board"]
         values = map(config.get, keys)
         config = dict(zip(keys, values))
 
-        config["__boards__"] = dict(
-            zip(config["__boards__"], [True] * len(config["__boards__"]))
-        )
-        config["Captura por board"] = False
-
-        board = list(config["__boards__"].keys())[0]
         mask = None
-        for wav in config["__wavelengths__"]:
-            config["__wavelengths__"] = dict(
-                zip(config["__wavelengths__"], [False] * len(config["__wavelengths__"]))
-            )
-            config["__wavelengths__"][wav] = True
+        for board in config["__pwm__"].columns.values.tolist():
+            if board == 'Multiple_Board':
+                config["__boards__"] = dict(
+                    zip(config["__boards__"], [True] * len(config["__boards__"]))
+                )
+                config["Captura por board"] = False
+            else:
+                break # Comentar para que calibre los demas
+                config["__boards__"] = dict(
+                    zip(config["__boards__"], [False] * len(config["__boards__"]))
+                )
+                config["__boards__"][board] = True
+                config["Captura por board"] = True
 
-            searching_value = True
-            checked_led_pwm = 100
-            delta_pwm = 10
-            while searching_value is True:
-                if checked_led_pwm > 100:
-                    # configure_single_LED(comunicacion, led , list_led_duty_values[0] )
-                    checked_led_pwm = 100
-                    break
-                config["__pwm__"].loc[wav][board] = checked_led_pwm
+            for wav in config["__wavelengths__"]:
+                config["__wavelengths__"] = dict(
+                    zip(config["__wavelengths__"], [False] * len(config["__wavelengths__"]))
+                )
+                config["__wavelengths__"][wav] = True
 
-                self.form.set(config)
-                self.update()
-                if self.iluminator.set_config(config):
-                    raise ValueError("Error seteando el iluminador")
-
-                self.multispectral_capture()
-
-                path_image = "temp/" + os.listdir("temp")[0]
-
-                if mask is None:
-                    image = cv2.imread(path_image, cv2.IMREAD_GRAYSCALE)
-                    mask = color_checker_detection([image], "end")[18]
-
-                median = check_median(path_image, mask, ideal_value=243)
-
-                print(f"The median value is: {median}")
-                if median < 243 and delta_pwm == 1:
-                    searching_value = False
-                    print(f"The final value is {checked_led_pwm}")
-
-                elif median < 243 and delta_pwm == 10:
-                    checked_led_pwm += 9
-                    delta_pwm = 1
-
+                searching_value = True
+                checked_led_pwm = 100
+                delta_pwm = 10
+                while searching_value is True:
                     if checked_led_pwm > 100:
+                        # configure_single_LED(comunicacion, led , list_led_duty_values[0] )
+                        checked_led_pwm = 100
+                        break
+                    config["__pwm__"].loc[wav][board] = checked_led_pwm
+
+                    self.form.set(config)
+                    self.update()
+                    if self.iluminator.set_config(config):
+                        raise ValueError("Error seteando el iluminador")
+
+                    self.multispectral_capture()
+
+                    path_image = "temp/" + os.listdir("temp")[0]
+
+                    if mask is None:
+                        image = cv2.imread(path_image, cv2.IMREAD_GRAYSCALE)
+                        mask = color_checker_detection([image], "end")[num_patch-1]
+
+                    median = check_median(path_image, mask, ideal_value=ideal_value)
+
+                    print(f"The median value is: {median}")
+                    if median < ideal_value and delta_pwm == 1:
                         searching_value = False
                         print(f"The final value is {checked_led_pwm}")
-                else:
-                    checked_led_pwm -= delta_pwm
 
-    def command_bt_calibrate_spectralon(self):
+                    elif median < ideal_value and delta_pwm == 10:
+                        checked_led_pwm += 9
+                        delta_pwm = 1
+
+                        if checked_led_pwm > 100:
+                            searching_value = False
+                            print(f"The final value is {checked_led_pwm}")
+                    else:
+                        checked_led_pwm -= delta_pwm
+
+    def command_bt_calibrate_spectralon(self, ideal_value: float = 252.45):
         """
         Calibra valores de pwm para el spectralon
         """
+        if ideal_value > 255 or ideal_value < 0:
+            raise ValueError(f'El valor de calibración debe estar entre 0 y 255. Valor: {ideal_value}')
 
         config = self.form.get()
 
@@ -222,56 +238,64 @@ class App(tk.Tk):
         values = map(config.get, keys)
         config = dict(zip(keys, values))
 
-        config["__boards__"] = dict(
-            zip(config["__boards__"], [True] * len(config["__boards__"]))
-        )
-        config["Captura por board"] = False
-
-        board = list(config["__boards__"].keys())[0]
         mask = None
-        for wav in config["__wavelengths__"]:
-            config["__wavelengths__"] = dict(
-                zip(config["__wavelengths__"], [False] * len(config["__wavelengths__"]))
-            )
-            config["__wavelengths__"][wav] = True
+        for board in config["__pwm__"].columns.values.tolist():
+            if board == 'Multiple_Board':
+                config["__boards__"] = dict(
+                    zip(config["__boards__"], [True] * len(config["__boards__"]))
+                )
+                config["Captura por board"] = False
+            else:
+                break # Comentar para que calibre los demas
+                config["__boards__"] = dict(
+                    zip(config["__boards__"], [False] * len(config["__boards__"]))
+                )
+                config["__boards__"][board] = True
+                config["Captura por board"] = True
 
-            searching_value = True
-            checked_led_pwm = 100
-            delta_pwm = 10
-            while searching_value is True:
-                if checked_led_pwm > 100:
-                    checked_led_pwm = 100
-                    break
-                config["__pwm__"].loc[wav][board] = checked_led_pwm
+            for wav in config["__wavelengths__"]:
+                config["__wavelengths__"] = dict(
+                    zip(config["__wavelengths__"], [False] * len(config["__wavelengths__"]))
+                )
+                config["__wavelengths__"][wav] = True
 
-                self.form.set(config)
-                self.update()
-                if self.iluminator.set_config(config):
-                    raise ValueError("Error seteando el iluminador")
-
-                self.multispectral_capture()
-
-                path_image = "temp/" + os.listdir("temp")[0]
-
-                if mask is None:
-                    mask = detect_spectralon(path_image, "end")
-
-                median = check_median(path_image, mask)
-
-                print(f"The median value is: {median}")
-                if median < 255 and delta_pwm == 1:
-                    searching_value = False
-                    print(f"The final value is {checked_led_pwm}")
-
-                elif median < 255 and delta_pwm == 10:
-                    checked_led_pwm += 9
-                    delta_pwm = 1
-
+                searching_value = True
+                checked_led_pwm = 100
+                delta_pwm = 10
+                while searching_value is True:
                     if checked_led_pwm > 100:
+                        checked_led_pwm = 100
+                        break
+                    config["__pwm__"].loc[wav][board] = checked_led_pwm
+
+                    self.form.set(config)
+                    self.update()
+                    if self.iluminator.set_config(config):
+                        raise ValueError("Error seteando el iluminador")
+
+                    self.multispectral_capture()
+
+                    path_image = "temp/" + os.listdir("temp")[0]
+
+                    if mask is None:
+                        mask = detect_spectralon(path_image, "end")
+
+                    median = check_median(path_image, mask, ideal_value)
+
+                    print(f"The median value is: {median}")
+                    if median < ideal_value and delta_pwm == 1:
                         searching_value = False
                         print(f"The final value is {checked_led_pwm}")
-                else:
-                    checked_led_pwm -= delta_pwm
+
+                    elif median < ideal_value and delta_pwm == 10:
+                        checked_led_pwm += 9
+                        delta_pwm = 1
+
+                        if checked_led_pwm > 100:
+                            searching_value = False
+                            print(f"The final value is {checked_led_pwm}")
+                    else:
+                        checked_led_pwm -= delta_pwm
 
     def command_charge_duty(self):
         """
@@ -350,7 +374,7 @@ class App(tk.Tk):
 
         self.fm_control.grid(row=3, column=0, columnspan=3, sticky="nesw")
 
-    def multispectral_capture(self):
+    def multispectral_capture(self, visualizer: bool = False):
         """
         Capture MultiSpectral Images
         """
@@ -384,7 +408,8 @@ class App(tk.Tk):
         if self.camera:
             self.camera.End_Acquisition()
 
-        MultiSpectralVisualizer(self, "temp")
+        if visualizer is True:
+            MultiSpectralVisualizer(self, "temp")
 
 
 if __name__ == "__main__":
